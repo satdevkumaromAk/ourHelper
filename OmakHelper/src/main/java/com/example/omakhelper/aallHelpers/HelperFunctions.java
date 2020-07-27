@@ -4,12 +4,18 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.ContentProviderOperation;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
+import android.content.OperationApplicationException;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.RemoteException;
+import android.provider.ContactsContract;
 import android.telephony.TelephonyManager;
 import android.text.format.DateFormat;
 import android.view.LayoutInflater;
@@ -34,7 +40,6 @@ import com.example.omakhelper.aallHelpers.Retofit.ApiInterface;
 import com.google.gson.Gson;
 import com.kaopiz.kprogresshud.KProgressHUD;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -54,6 +59,8 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
+
 public class HelperFunctions {
     static TextView tvTitles, tvUpdateData;
     static LinearLayout llBackIcon, llMenu;
@@ -63,241 +70,6 @@ public class HelperFunctions {
     boolean isReturn = false;
     String mailFor = "";
     private HelperFunctionsListener listener;
-
-    ///// send lead email ////
-    public static boolean sendLeadEmailToUsersServices(final Context context, String... userData) {
-        Alerts.log("MailData", "MailData");
-        ArrayList<String> leadId = new ArrayList<>();
-        leadId.add(userData[2]);
-        boolean isdata = false;
-        final ProgressDialog dialog = new ProgressDialog(context);
-        dialog.setCancelable(true);
-        dialog.setMessage(context.getString(R.string.please_wait_message));
-        ////  Api interface here////
-
-        ApiInterface apiService = new ApiClient().getClient().create(ApiInterface.class);
-        AlmightMainJSonModel task = new ApiClient().prepareMainJsModel("ap-user", context);
-        task.setReferrer("ijariit");
-        task.setCalculation_ids(leadId);
-        task.setUser_id(userData[0]);
-        task.setMail_for(userData[1]);
-        Alerts.printTask("MailTask", task);
-        Call<ResponseGeneral> call = apiService.sendLeadsMail(task);
-
-        ApiHelper.enqueueWithRetry(context, call, new Callback<ResponseGeneral>() {
-            @Override
-            public void onResponse(Call<ResponseGeneral> call, Response<ResponseGeneral> response) {
-                dialog.dismiss();
-                Alerts.log("MailData", new Gson().toJson(response.body()));
-                if (response.isSuccessful()) {
-                    Alerts.toast(context, response.body() != null ? response.body().getMessage() : null);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ResponseGeneral> call, Throwable t) {
-                dialog.dismiss();
-                return;
-            }
-        });
-
-        return false;
-    }
-
-    //// create new user agains lead api    /////////
-    public static boolean creatUserAgainstLead(final Context context, String... data) {
-        boolean isdata = false;
-        final ProgressDialog dialog = new ProgressDialog(context);
-        dialog.setCancelable(true);
-        dialog.setMessage(context.getString(R.string.please_wait_message));
-
-        ////  Api interface here////
-        ApiInterface apiService = new ApiClient().getClient().create(ApiInterface.class);
-        AlmightMainJSonModel task = new ApiClient().prepareMainJsModel("ap-user", context);
-
-        task.setReferrer("ijariit");
-        task.setId(data[0]);
-        Call<ResponseGeneral> call = apiService.createUserFromLeads(task);
-        ApiHelper.enqueueWithRetry(context, call, new Callback<ResponseGeneral>() {
-            @Override
-            public void onResponse(Call<ResponseGeneral> call, Response<ResponseGeneral> response) {
-                dialog.dismiss();
-                if (response.isSuccessful()) {
-                    new RealmHelpers(context).setBooleanFlag(RealmHelpers.allSubscriberListUpdated, false);
-                    new RealmHelpers(context).setBooleanFlag(RealmHelpers.allLeadsUpdated, false);
-                    Alerts.toast(context, response.body() != null ? response.body().getMessage() : null);
-
-                    Activity activity = App.getActivity(context);
-                    activity.onBackPressed();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ResponseGeneral> call, Throwable t) {
-                dialog.dismiss();
-                return;
-            }
-        });
-
-        return false;
-    }
-
-    //////// send normal email ////////
-    public static boolean sendNormalEmailToUsersServices(final Context context, String mailFor, String userId) {
-        final ProgressDialog dialog = new ProgressDialog(context);
-        dialog.setCancelable(true);
-        dialog.setMessage(context.getString(R.string.please_wait_message));
-
-        ////  Api interface here////
-        ApiInterface apiService = new ApiClient().getClient().create(ApiInterface.class);
-        AlmightMainJSonModel task = new ApiClient().prepareMainJsModel("ap-user", context);
-
-        task.setReferrer("ijariit");
-        task.setUser_id(userId);
-        task.setMail_for(mailFor);
-        Call<ResponseGeneral> call = apiService.getSendMailData(task);
-        ApiHelper.enqueueWithRetry(
-                context,
-                call,
-                new Callback<ResponseGeneral>() {
-                    @Override
-                    public void onResponse(Call<ResponseGeneral> call, Response<ResponseGeneral> response) {
-                        dialog.dismiss();
-                        if (response.isSuccessful()) {
-
-                            Alerts.toast(context, response.body() != null ? response.body().getMessage() : null);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Call<ResponseGeneral> call, Throwable t) {
-                        dialog.dismiss();
-                        return;
-                    }
-                });
-
-        return false;
-    }
-
-    //////// send projects email ////////
-    public static boolean sendProjectsEmailToUsersServices(final Context context, String mailFor, String projectID) {
-        final ProgressDialog dialog = new ProgressDialog(context);
-        dialog.setCancelable(true);
-        dialog.setMessage(context.getString(R.string.please_wait_message));
-
-        ////  Api interface here////
-        ApiInterface apiService = new ApiClient().getClient().create(ApiInterface.class);
-        AlmightMainJSonModel task = new ApiClient().prepareMainJsModel("ap-user", context);
-
-        task.setReferrer("ijariit");
-        task.setProjectId(projectID);
-        task.setMail_for(mailFor);
-        Alerts.printTask("ProjectMails", task);
-
-
-        Call<ResponseGeneral> call = apiService.getSendMailData(task);
-        ApiHelper.enqueueWithRetry(
-                context,
-                call,
-                new Callback<ResponseGeneral>() {
-                    @Override
-                    public void onResponse(@NotNull Call<ResponseGeneral> call, @NotNull Response<ResponseGeneral> response) {
-                        dialog.dismiss();
-                        if (response.isSuccessful()) {
-
-                            Alerts.toast(context, response.body() != null ? response.body().getMessage() : null);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Call<ResponseGeneral> call, Throwable t) {
-                        dialog.dismiss();
-                        return;
-                    }
-                });
-
-        return false;
-    }
-
-    //////// send leads bulk  emails ////////
-    public static boolean sendBulkEmails(final Context context, String mailFor, List<String> ids) {
-        final ProgressDialog dialog = new ProgressDialog(context);
-        dialog.setCancelable(true);
-        dialog.setMessage(context.getString(R.string.please_wait_message));
-
-        ////  Api interface here////
-        ApiInterface apiService = new ApiClient().getClient().create(ApiInterface.class);
-        AlmightMainJSonModel task = new ApiClient().prepareMainJsModel("ap-user", context);
-
-        task.setReferrer("ijariit");
-        task.setMail_for(mailFor);
-        task.setCalculation_ids(ids);
-        Alerts.printTask("BulkEmailData", task);
-        Call<ResponseGeneral> call = apiService.sendBulkEmails(task);
-        ApiHelper.enqueueWithRetry(
-                context,
-                call,
-                new Callback<ResponseGeneral>() {
-                    @Override
-                    public void onResponse(Call<ResponseGeneral> call, Response<ResponseGeneral> response) {
-                        dialog.dismiss();
-                        if (response.isSuccessful()) {
-
-                            Alerts.toast(context, response.body() != null ? response.body().getMessage() : null);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Call<ResponseGeneral> call, Throwable t) {
-                        dialog.dismiss();
-                        return;
-                    }
-                });
-
-        return false;
-    }
-
-
-    /*delete Comment service or api */
-    public static void deleteCommentsService(final Context context, String... deleteUserData) {
-        final ProgressDialog dialog = new ProgressDialog(context);
-        dialog.setCancelable(true);
-        dialog.setMessage(context.getString(R.string.please_wait_message));
-        ////  Api interface here////
-        ApiInterface apiService = new ApiClient().getClient().create(ApiInterface.class);
-        AlmightMainJSonModel task = new ApiClient().prepareMainJsModel("ap-admin", context);
-
-        task.setReferrer("ijariit");
-        task.setUser_id(deleteUserData[0]);
-
-        Call<ResponseGeneral> call = apiService.deleteCommentsByAdmin(task);
-        ApiHelper.enqueueWithRetry(
-                context,
-                call,
-                new Callback<ResponseGeneral>() {
-                    @Override
-                    public void onResponse(Call<ResponseGeneral> call, Response<ResponseGeneral> response) {
-                        dialog.dismiss();
-                        if (response.isSuccessful()) {
-
-                            Alerts.toast(context, response.body() != null ? response.body().getMessage() : null);
-                            //Toast.makeText(context, response.message(), Toast.LENGTH_LONG).show();
-                            new RealmHelpers(context).setBooleanFlag(RealmHelpers.allSubscriberListUpdated, false);
-                           /* Intent intent = new Intent(context, AdminPanelSubscribers.class);
-                            context.startActivity(intent);*/
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Call<ResponseGeneral> call, Throwable t) {
-                        dialog.dismiss();
-                        return;
-                        //// RealmCallLogModel error here since request failed
-                        //// Toast.makeText(contextThis, "Something failed, please try again.",
-                        //// Toast.LENGTH_LONG).show();
-                    }
-                });
-    }
 
     /*Realm Configuration */
     public static Realm getRealm(String whichRealm, Context applicationContext) {
@@ -364,7 +136,7 @@ public class HelperFunctions {
     }
 
     public static String getIntentExtra(Context context, String key) {
-        Activity activity = App.getActivity(context);
+        Activity activity = getActivity(context);
         String userId = activity.getIntent().getStringExtra("userId");
         return userId;
 
@@ -392,28 +164,6 @@ public class HelperFunctions {
         return formatter.format(date);
     }
 
-    // method for open whatsapp //
-    public static boolean openWhatsapp(Context context, String number, String name) {
-        boolean success = false;
-        try {
-            String bodyMessageFormal = "Hello";
-            bodyMessageFormal += (name == "") ? "" : " " + name;
-            bodyMessageFormal += ", \n\n"; // Replace with your message.
-
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.putExtra(Intent.EXTRA_TEXT, "");
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.setType("text/rtf");
-            intent.setData(Uri.parse("https://wa.me/" + number + "/?text=" + bodyMessageFormal));
-            context.startActivity(intent);
-            success = true;
-        } catch (Exception e) {
-            Alerts.toast(context, "Message failed: " + e.getMessage());
-            //Toast.makeText(context, "Message failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
-
-        return success;
-    }
 
     // method for open call //
     public static void openCallDialer(Context context, String callerId) {
@@ -607,5 +357,132 @@ public class HelperFunctions {
         void onApiCompleted();
     }
 
+
+    public static boolean contactExists(Context context, String number) {
+        /// number is the phone number
+        Uri lookupUri = Uri.withAppendedPath(
+                ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+                Uri.encode(number));
+        String[] mPhoneNumberProjection = {ContactsContract.PhoneLookup._ID, ContactsContract.PhoneLookup.NUMBER,
+                ContactsContract.PhoneLookup.DISPLAY_NAME};
+        Cursor cur = context.getContentResolver().query(lookupUri, mPhoneNumberProjection,
+                null, null, null);
+        try {
+            if (cur.moveToFirst()) {
+                return true;
+            }
+        } finally {
+            if (cur != null)
+                cur.close();
+        }
+        return false;
+    }
+
+    public static void openSaveContact(Context context, String name, String number, String email) {
+        Intent intent = new Intent(ContactsContract.Intents.Insert.ACTION);
+        intent.setType(ContactsContract.RawContacts.CONTENT_TYPE);
+        intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+
+        if (!name.isEmpty()) {
+            intent.putExtra(ContactsContract.Intents.Insert.NAME, HelperFunctions.upperCaseLetter(name));
+        }
+
+        if (!number.isEmpty()) {
+            intent.putExtra(ContactsContract.Intents.Insert.PHONE, number);
+            intent.putExtra(ContactsContract.Intents.Insert.PHONE_TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_WORK);
+        }
+
+        if (!email.isEmpty()) {
+            intent.putExtra(ContactsContract.Intents.Insert.EMAIL, email);
+            intent.putExtra(ContactsContract.Intents.Insert.EMAIL_TYPE, ContactsContract.CommonDataKinds.Email.TYPE_WORK);
+        }
+
+        context.startActivity(intent);
+    }
+
+    public static boolean UpdateContact(String name, String number, Context context) {
+        boolean success = true;
+        try {
+            ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+
+            ops.add(ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
+                    .withSelection(ContactsContract.CommonDataKinds.Phone._ID + "=? AND " +
+                                    ContactsContract.Contacts.Data.MIMETYPE + "='" +
+                                    ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE + "'",
+                            new String[]{name})
+                    .withValue(ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, name)
+                    .build());
+
+            ops.add(ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
+                    .withSelection(ContactsContract.CommonDataKinds.Phone._ID + "=? AND " +
+                                    ContactsContract.Contacts.Data.MIMETYPE + "='" +
+                                    ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE + "'",
+                            new String[]{name})
+                    .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, number)
+                    .build());
+            try {
+                context.getContentResolver().applyBatch(ContactsContract.AUTHORITY, ops);
+                Toast.makeText(context, "Contact is successfully Edit", Toast.LENGTH_SHORT).show();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            } catch (OperationApplicationException e) {
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return success;
+    }
+
+    public static boolean openWhatsapp(Context context, String number, String name) {
+        Boolean success = false;
+        try {
+            String bodyMessageFormal = "Hello";
+            bodyMessageFormal += (name == "") ? "" : " " + HelperFunctions.upperCaseLetter(name);
+            bodyMessageFormal += ", \n\n"; // Replace with your message.
+
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.putExtra(Intent.EXTRA_TEXT, "");
+            intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+            intent.setType("text/rtf");
+            intent.setData(Uri.parse("https://wa.me/" + number + "/?text=" + bodyMessageFormal));
+            context.startActivity(intent);
+            success = true;
+        } catch (Exception e) {
+            Alerts.toast(context, "Message failed: " + e.getMessage());
+            //Toast.makeText(context, "Message failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+
+        return success;
+    }
+
+    public static boolean openSmsApp(Context context, String number, String name) {
+        Boolean success = false;
+        Intent smsIntent = new Intent(Intent.ACTION_VIEW);
+        smsIntent.setType("vnd.android-dir/mms-sms");
+        smsIntent.putExtra("address", number);
+        smsIntent.putExtra("sms_body", "Hi " + name + ",");
+        smsIntent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+        if (smsIntent.resolveActivity(context.getPackageManager()) != null) {
+            context.startActivity(smsIntent);
+        }
+        success = true;
+
+        return success;
+    }
+
+    public static Activity getActivity(Context context) {
+        if (context == null) {
+            return null;
+        } else if (context instanceof ContextWrapper) {
+            if (context instanceof Activity) {
+                return (Activity) context;
+            } else {
+                return getActivity(((ContextWrapper) context).getBaseContext());
+            }
+        }
+
+        return null;
+    }
 
 }

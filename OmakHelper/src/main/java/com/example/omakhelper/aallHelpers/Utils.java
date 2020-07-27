@@ -7,9 +7,9 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
+import com.example.omakhelper.R;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
-import com.omak.readmin.R;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -20,7 +20,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
-import static com.omak.readmin.aallHelpers.App.getContext;
 
 /**
  * Utils class used in MDC-111 application.
@@ -136,146 +135,6 @@ public abstract class Utils {
         return datetime;
     }
 
-    public static Integer getStatusColor(Context context, String status) {
-        Integer color = getContext().getColor(R.color.Black);
-
-        if (status != null && !status.isEmpty()) {
-            switch (status) {
-                case "delivered":
-                case "matured":
-                    color = getContext().getColor(R.color.colorPrimary);
-                    break;
-                case "started":
-                    color = getContext().getColor(R.color.OrangeRed);
-                    break;
-                case "pending":
-                    color = getContext().getColor(R.color.DarkOrange);
-                    break;
-                case "hot":
-                case "advance-awaited":
-                case "completed":
-                    color = getContext().getColor(R.color.Red);
-                    break;
-                case "cold":
-                case "accepted":
-                    color = getContext().getColor(R.color.LightSkyBlue);
-                    break;
-                case "paused":
-                    color = getContext().getColor(R.color.Tan);
-                    break;
-                case "no-lead":
-                case "rejected":
-                    color = getContext().getColor(R.color.Gray);
-                    break;
-            }
-        }
-
-        return color;
-    }
-
-    public static Integer getProjectStatusColor(Context context, String status) {
-        Integer color = getContext().getColor(R.color.Black);
-
-        if (status != null && !status.isEmpty()) {
-            switch (status) {
-                case "rejected":
-                    color = getContext().getColor(R.color.rejected);
-                    break;
-                case "refunded":
-                    color = getContext().getColor(R.color.refunded);
-                    break;
-                case "reopened":
-                    color = getContext().getColor(R.color.reopened);
-                    break;
-                case "paused":
-                    color = getContext().getColor(R.color.paused);
-                    break;
-                case "delivered":
-                    color = getContext().getColor(R.color.delivered);
-                    break;
-                case "completed":
-                    color = getContext().getColor(R.color.completed);
-                    break;
-                case "started":
-                    color = getContext().getColor(R.color.started);
-                    break;
-                case "advance-awaited":
-                    color = getContext().getColor(R.color.advance_awaited);
-                    break;
-                case "accepted":
-                    color = getContext().getColor(R.color.accepted);
-                    break;
-                case "received":
-                    color = getContext().getColor(R.color.received);
-                    break;
-            }
-        }
-
-        return color;
-    }
-
-    public static Integer getCardViewColor(Context context, String status) {
-        Integer color = getContext().getColor(R.color.BlanchedAlmond);
-
-        if (status != null && !status.isEmpty()) {
-            switch (status) {
-                case "delivered":
-                case "matured":
-                    color = getContext().getColor(R.color.Olive);
-                    break;
-                case "started":
-                    color = getContext().getColor(R.color.Khaki);
-                    break;
-                case "pending":
-                    color = getContext().getColor(R.color.light_green);
-                    break;
-                case "hot":
-                case "advance-awaited":
-                case "completed":
-                    color = getContext().getColor(R.color.MintCream);
-                    break;
-                case "cold":
-                case "accepted":
-                    color = getContext().getColor(R.color.DarkSalmon);
-                    break;
-                case "paused":
-                    color = getContext().getColor(R.color.CornflowerBlue);
-                    break;
-                case "no-lead":
-                case "rejected":
-                    color = getContext().getColor(R.color.DimGray);
-                    break;
-            }
-        }
-
-        return color;
-    }
-
-    public static String[] sort(String[] strArr) {
-        String str = "abcdefghijklmnopqrstuvwxyz";
-        Comparator<String> myComp = new Comparator<String>() {
-            @Override
-            public int compare(String a, String b) {
-                for (int i = 0;
-                     i < Math.min(a.length(),
-                             b.length()); i++) {
-                    if (str.indexOf(a.charAt(i)) ==
-                            str.indexOf(b.charAt(i))) {
-                        continue;
-                    } else if (str.indexOf(a.charAt(i)) >
-                            str.indexOf(b.charAt(i))) {
-                        return 1;
-                    } else {
-                        return -1;
-                    }
-                }
-                return 0;
-            }
-        };
-        Arrays.sort(strArr, myComp);
-
-        return strArr;
-    }
 
 
     public static void hideKeyboard(Activity activity) {
